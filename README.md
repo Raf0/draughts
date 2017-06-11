@@ -1,0 +1,2 @@
+# draughts
+Haskell project
