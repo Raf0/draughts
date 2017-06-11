@@ -24,6 +24,19 @@ defaultDraughtsGame = DraughtsGame $ GameState
 togglePlayer (DraughtsGame (GameState Black boardPos boardPieces')) = (DraughtsGame (GameState White boardPos boardPieces'))
 togglePlayer (DraughtsGame (GameState White boardPos boardPieces')) = (DraughtsGame (GameState Black boardPos boardPieces'))
 
+
+canAnyCapture (DraughtsGame game) = or (map (\(x,y,player,piece) ->
+    if(player == curPlayer' game) then canCapture (x,y,player,piece) game
+    else False) (boardPieces' game))
+
+canCapture piece game =
+    or (map (\p -> canCaptureThis piece p game) (boardPieces' game))
+
+canCaptureThis (x,y,player,piece) (x2,y2,player2,piece2) game =
+    if(player==player2 || x2==1 || x2==8 || y2==1 || y2==8) then False
+    else abs (x -x2) == 1 && abs(y - y2) == 1 &&  not(hasPiece game (2*x2-x, 2*y2-y))
+
+
 instance PlayableGame DraughtsGame Int Tile Player Piece where
 
   -- "Static" game view
@@ -34,7 +47,7 @@ instance PlayableGame DraughtsGame Int Tile Player Piece where
 
   moveEnabled _  = True
 
-  canMove (DraughtsGame game) player position    =
+  canMove (DraughtsGame game) player position =
    case (getPieceAt game position) of
      Just (player2, _) -> player == player2
      otherwise -> False
@@ -42,7 +55,7 @@ instance PlayableGame DraughtsGame Int Tile Player Piece where
   canMoveTo _ _ _ _ = True
 
   move (DraughtsGame game) _player posO posD
-    | hasPiece game posO && not (hasPiece game posD) && forward
+    | hasPiece game posO && not (hasPiece game posD) && forward && not (canAnyCapture (DraughtsGame game))
     = [ MovePiece posO posD]
     | hasPiece game posO && not (hasPiece game posD) && capture && enemy
     = [ MovePiece posO posD, RemovePiece posM]
@@ -60,8 +73,10 @@ instance PlayableGame DraughtsGame Int Tile Player Piece where
 
   applyChange psg@(DraughtsGame game) (MovePiece posO posD)
     | Just (player, piece) <- getPieceAt game posO
-    = applyChanges (togglePlayer psg) [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
-
+    -- If can capture more
+    = if(abs(fst posO - fst posD) > 1 && (canCapture (fst posD, snd posD,player,piece) game))
+        then applyChanges psg [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
+        else applyChanges (togglePlayer psg) [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
     | otherwise = psg
   applyChange (DraughtsGame game) (AddPiece (x,y) player piece )
     = DraughtsGame (game { boardPieces' = (x,y,player,piece) : boardPieces' game })
