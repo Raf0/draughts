@@ -80,7 +80,9 @@ instance PlayableGame DraughtsGame Int Tile Player Piece where
         else applyChanges (togglePlayer psg) [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
     | otherwise = psg
   applyChange (DraughtsGame game) (AddPiece (x,y) player piece )
-    = DraughtsGame (game { boardPieces' = (x,y,player,piece) : boardPieces' game })
+    =  if((y == 1 && player == Black) || (y == 8 && player == White))
+        then DraughtsGame (game { boardPieces' = (x,y,player,King) : boardPieces' game })
+        else DraughtsGame (game { boardPieces' = (x,y,player,piece) : boardPieces' game })
   applyChange (DraughtsGame game) (RemovePiece (x,y))
     = DraughtsGame (game { boardPieces' = [ (x',y',player,piece)
                                               | (x',y',player,piece) <- boardPieces' game

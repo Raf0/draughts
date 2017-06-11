@@ -14,10 +14,16 @@ gtkGame = do
   tileBlack  <- pixbufNewFromFile "img\\tile_black.png"
   black <- pixbufNewFromFile "img\\man_black.png"
   white <- pixbufNewFromFile "img\\man_white.png"
+  blackK <- pixbufNewFromFile "img\\king_black.png"
+  whiteK <- pixbufNewFromFile "img\\king_white.png"
 
   let game = Game visualAspects defaultDraughtsGame
       visualAspects = VisualGameAspects { tileF   = \tile -> if(tile==TileWhite) then tileWhite else tileBlack
-                                        , pieceF  = \(player,_) -> if(player==Black)then black else white
+                                        , pieceF  = (\p -> case p of
+                                                        (Black, King) -> blackK
+                                                        (Black, _) -> black
+                                                        (White, King) -> whiteK
+                                                        otherwise -> white)
                                         , bgColor = (65000, 50000, 50000)
                                         , bg      = Just (tileWhite, SizeAdjustment)
                                         }
