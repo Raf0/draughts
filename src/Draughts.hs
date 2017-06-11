@@ -62,7 +62,8 @@ instance PlayableGame DraughtsGame Int Tile Player Piece where
     | otherwise
     = []
    where forward = abs(fst posO - fst posD) == 1
-           && (_player == Black && (snd posO - snd posD == 1)) || (_player == White && (snd posO - snd posD == -1))
+           && ((_player == Black && (snd posO - snd posD == 1))  || (_player == White && (snd posO - snd posD == -1)))
+           && abs(fst posO -fst posD) == 1
          capture = abs(fst posO - fst posD) == 2 && abs(snd posO - snd posD) == 2
          posM = ((fst posO + fst posD) `div` 2, (snd posO + snd posD) `div` 2)
          enemy = case (getPieceAt game posM) of
