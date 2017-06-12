@@ -42,9 +42,18 @@ canCapture piece game =
     or (map (\p -> canCaptureThis piece p game) (boardPieces' game))
 
 -- | If this piece can capture that piece
-canCaptureThis (x,y,player,piece) (x2,y2,player2,piece2) game =
+canCaptureThis (x,y,player,Man) (x2,y2,player2,piece2) game =
     if(player==player2 || x2==1 || x2==8 || y2==1 || y2==8) then False
     else abs (x -x2) == 1 && abs(y - y2) == 1 &&  not(hasPiece game (2*x2-x, 2*y2-y))
+canCaptureThis (x,y,player,King) (x2,y2,player2,piece2) game =
+    if(player==player2 || x2==1 || x2==8 || y2==1 || y2==8 || abs (x -x2) /= abs(y - y2)) then False
+    else
+      if(x<x2 && y<y2)      then not ( or (map (\(x,y) -> hasPiece game (x,y)) (zip [x+1..x2-1] [y+1..y2-1]))) && not (hasPiece game (x2+1,y2+1))
+      else if(x>x2 && y>y2) then not ( or (map (\(x,y) -> hasPiece game (x,y)) (zip [x2+1..x-1] [y2+1..y-1]))) && not (hasPiece game (x2-1,y2-1))
+      else if(x>x2 && y<y2) then not ( or (map (\(x,y) -> hasPiece game (x,y)) (zip [x2+1..x-1] [y+1..y2-1]))) && not (hasPiece game (x2-1,y2+1))
+      else                       not ( or (map (\(x,y) -> hasPiece game (x,y)) (zip [x+1..x2-1] [y2+1..y-1]))) && not (hasPiece game (x2+1,y2-1))
+
+
 
 -- | Checking move of King
 kingsMove (DraughtsGame last game) _player posO posA posD
@@ -98,8 +107,8 @@ instance PlayableGame DraughtsGame Int Tile Player Piece where
         else [MovePiece posO posD]
     | hasPiece game posO && not (hasPiece game posD) && capture && enemy
     = if((snd posD == 1 && _player == Black) || (snd posD == 8 && _player == White)) && not (canCapture (fst posD, snd posD,_player,Man) game)
-        then [RemovePiece posM, MovePiece posO posD, RemovePiece posD, AddPiece posD _player King]
-        else [RemovePiece posM, MovePiece posO posD]
+        then [MovePiece posO posD, RemovePiece posD, AddPiece posD _player King, RemovePiece posM]
+        else [MovePiece posO posD, RemovePiece posM]
     | otherwise
     = []
    where forward = abs(fst posO - fst posD) == 1
@@ -115,7 +124,7 @@ instance PlayableGame DraughtsGame Int Tile Player Piece where
   applyChange dg@(DraughtsGame last game) (MovePiece posO posD)
     | Just (player, piece) <- getPieceAt game posO
     -- x<0 -> there was captuing xD
-    = if(abs(fst posO - fst posD) > 1 && (canCapture (fst posD, snd posD,player,piece) game))
+    = if((canCapture (fst posO, snd posO, player, piece) game) && (canCapture (fst posD, snd posD,player,piece) game))
         then applyChanges (DraughtsGame (Captured posD) game) [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
         else applyChanges (togglePlayer dg) [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
     | otherwise = dg
