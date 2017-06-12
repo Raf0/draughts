@@ -30,7 +30,7 @@ main = do
   containerAdd bgBin align
   containerAdd window bgBin
 
-  widgetSetSizeRequest window 400 300
+  widgetSetSizeRequest window 1400 900
 
   -- Close program if window is closed
   _ <- window `on` deleteEvent $ liftIO mainQuit >> return False

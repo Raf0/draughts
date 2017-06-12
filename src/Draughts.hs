@@ -6,12 +6,13 @@ import Game.Board.BasicTurnGame
 data Piece    = Man | King deriving(Eq)
 data Tile     = TileBlack | TileWhite deriving(Eq)
 data Player   = Black | White deriving (Eq)
+data LastMove = Captured (Int,Int) | None deriving(Eq)
 
-newtype DraughtsGame = DraughtsGame (GameState Int Tile Player Piece)
+data DraughtsGame = DraughtsGame LastMove (GameState Int Tile Player Piece)
 
 
 defaultDraughtsGame :: DraughtsGame
-defaultDraughtsGame = DraughtsGame $ GameState
+defaultDraughtsGame = DraughtsGame None $ GameState
  { curPlayer'      = White
  , boardPos        = allTiles
  , boardPieces'    = pieces
@@ -21,11 +22,11 @@ defaultDraughtsGame = DraughtsGame $ GameState
        pieces   = [(x,y,Black,Man) | x <- [1..8], y<-[6..8], (x `mod` 2 == 0 && y==7) || (x `mod` 2 == 1 && y/=7) ] ++
          [(x,y,White,Man) | x <- [1..8], y<-[1..3], (x `mod` 2 == 1 && y==2) || (x `mod` 2 == 0 && y/=2) ]
 
-togglePlayer (DraughtsGame (GameState Black boardPos boardPieces')) = (DraughtsGame (GameState White boardPos boardPieces'))
-togglePlayer (DraughtsGame (GameState White boardPos boardPieces')) = (DraughtsGame (GameState Black boardPos boardPieces'))
+togglePlayer (DraughtsGame _ (GameState Black boardPos boardPieces')) = (DraughtsGame None (GameState White boardPos boardPieces'))
+togglePlayer (DraughtsGame _ (GameState White boardPos boardPieces')) = (DraughtsGame None (GameState Black boardPos boardPieces'))
 
 
-canAnyCapture (DraughtsGame game) = or (map (\(x,y,player,piece) ->
+canAnyCapture (DraughtsGame _ game) = or (map (\(x,y,player,piece) ->
     if(player == curPlayer' game) then canCapture (x,y,player,piece) game
     else False) (boardPieces' game))
 
@@ -36,29 +37,60 @@ canCaptureThis (x,y,player,piece) (x2,y2,player2,piece2) game =
     if(player==player2 || x2==1 || x2==8 || y2==1 || y2==8) then False
     else abs (x -x2) == 1 && abs(y - y2) == 1 &&  not(hasPiece game (2*x2-x, 2*y2-y))
 
+kingsMove (DraughtsGame last game) _player posO posA posD
+    | posD == posN =
+        if(not (hasPiece game posD) && not (canAnyCapture (DraughtsGame last game)))
+           then [MovePiece posO posD]
+           else []
+    | Just (player, _) <- getPieceAt game posN =
+        if (player /= _player)
+         then kingsCapture game _player posO posN posD posN
+         else []
+    | otherwise = kingsMove (DraughtsGame last game) _player posO posN posD
+  where posN = ((fst posA + signum (fst posD - fst posO)), snd posA + signum (snd posD - snd posO))
+
+
+kingsCapture game _player posO posA posD posE
+    | posD == posN =
+      if(not (hasPiece game posD))
+         then [RemovePiece posE, MovePiece posO posD]
+         else []
+    | Just (_, _) <- getPieceAt game posN = []
+    | otherwise = kingsCapture game _player posO posN posD posE
+    where posN = ((fst posA + signum (fst posD - fst posO)), snd posA + signum (snd posD - snd posO))
+
 
 instance PlayableGame DraughtsGame Int Tile Player Piece where
 
   -- "Static" game view
-  curPlayer (DraughtsGame game) = curPlayer' game
-  allPieces (DraughtsGame game) = boardPieces' game
-  allPos (DraughtsGame game) = boardPos game
+  curPlayer (DraughtsGame _ game) = curPlayer' game
+  allPieces (DraughtsGame _ game) = boardPieces' game
+  allPos (DraughtsGame _ game) = boardPos game
 
 
   moveEnabled _  = True
 
-  canMove (DraughtsGame game) player position =
+  canMove (DraughtsGame _ game) player position =
    case (getPieceAt game position) of
      Just (player2, _) -> player == player2
      otherwise -> False
 
   canMoveTo _ _ _ _ = True
 
-  move (DraughtsGame game) _player posO posD
-    | hasPiece game posO && not (hasPiece game posD) && forward && not (canAnyCapture (DraughtsGame game))
-    = [ MovePiece posO posD]
+  move (DraughtsGame last game) _player posO posD
+    | last /= None && Captured posO /= last = []
+    | Just (_, King) <- getPieceAt game posO
+    = if(abs (fst posO - fst posD) == abs (snd posO - snd posD))
+        then kingsMove (DraughtsGame last game) _player posO posO posD
+        else []
+    | hasPiece game posO && not (hasPiece game posD) && forward && not (canAnyCapture (DraughtsGame last game))
+    = if((snd posD == 1 && _player == Black) || (snd posD == 8 && _player == White))
+        then [MovePiece posO posD, RemovePiece posD, AddPiece posD _player King]
+        else [MovePiece posO posD]
     | hasPiece game posO && not (hasPiece game posD) && capture && enemy
-    = [ MovePiece posO posD, RemovePiece posM]
+    = if((snd posD == 1 && _player == Black) || (snd posD == 8 && _player == White)) && not (canCapture (fst posD, snd posD,_player,Man) game)
+        then [RemovePiece posM, MovePiece posO posD, RemovePiece posD, AddPiece posD _player King]
+        else [RemovePiece posM, MovePiece posO posD]
     | otherwise
     = []
    where forward = abs(fst posO - fst posD) == 1
@@ -71,19 +103,18 @@ instance PlayableGame DraughtsGame Int Tile Player Piece where
            otherwise -> False
 
 
-
-  applyChange psg@(DraughtsGame game) (MovePiece posO posD)
+  applyChange dg@(DraughtsGame last game) (MovePiece posO posD)
     | Just (player, piece) <- getPieceAt game posO
-    -- If can capture more
+    -- x<0 -> there was captuing xD
     = if(abs(fst posO - fst posD) > 1 && (canCapture (fst posD, snd posD,player,piece) game))
-        then applyChanges psg [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
-        else applyChanges (togglePlayer psg) [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
-    | otherwise = psg
-  applyChange (DraughtsGame game) (AddPiece (x,y) player piece )
-    =  if((y == 1 && player == Black) || (y == 8 && player == White))
-        then DraughtsGame (game { boardPieces' = (x,y,player,King) : boardPieces' game })
-        else DraughtsGame (game { boardPieces' = (x,y,player,piece) : boardPieces' game })
-  applyChange (DraughtsGame game) (RemovePiece (x,y))
-    = DraughtsGame (game { boardPieces' = [ (x',y',player,piece)
+        then applyChanges (DraughtsGame (Captured posD) game) [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
+        else applyChanges (togglePlayer dg) [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
+    | otherwise = dg
+
+  applyChange (DraughtsGame last game) (AddPiece (x,y) player piece )
+    = DraughtsGame last (game { boardPieces' = (x,y,player,piece) : boardPieces' game })
+
+  applyChange (DraughtsGame last game) (RemovePiece (x,y))
+    = DraughtsGame last (game { boardPieces' = [ (x',y',player,piece)
                                               | (x',y',player,piece) <- boardPieces' game
                                               , (x /= x' || y /= y')]})

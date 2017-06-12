@@ -24,7 +24,7 @@ gtkGame = do
                                                         (Black, _) -> black
                                                         (White, King) -> whiteK
                                                         otherwise -> white)
-                                        , bgColor = (65000, 50000, 50000)
+                                        , bgColor = (50000, 50000, 50000)
                                         , bg      = Just (tileWhite, SizeAdjustment)
                                         }
 
