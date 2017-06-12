@@ -10,6 +10,7 @@ import Graphics.UI.Gtk.Board.TiledBoard
 import GtkDraughts
 import Draughts
 
+-- | Starts draughts game
 main :: IO ()
 main = do
   -- View

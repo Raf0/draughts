@@ -7,6 +7,7 @@ import Graphics.UI.Gtk.Board.TiledBoard
 import Graphics.UI.Gtk.Board.BoardLink
 import Draughts
 
+-- | Visualization layer of game
 gtkGame :: IO (Game DraughtsGame Int Tile Player Piece)
 gtkGame = do
   -- The images used for tiles and pegs
