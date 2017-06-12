@@ -8,5 +8,9 @@ Aby uruchomić aplikację:
 - stack build
 - stack exec draughts
 
+Testy:
+
+- stack test
+
 Wymagane gtk+2.0.
 Wymagany zlib1.dll np: w folderze z plikiem .exe lub systemowymn.
