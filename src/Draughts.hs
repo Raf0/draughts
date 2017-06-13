@@ -5,11 +5,11 @@ module Draughts where
 import Game.Board.BasicTurnGame
 
 -- | Piece to draughts - Man or King
-data Piece    = Man | King deriving(Eq)
+data Piece    = Man | King deriving(Eq, Show)
 -- | Tile of the Board - white or black
 data Tile     = TileBlack | TileWhite deriving(Eq)
 -- | Player of game - Black or White
-data Player   = Black | White deriving (Eq)
+data Player   = Black | White deriving (Eq, Show)
 -- | LastMove in this turn - Captured piece or None
 data LastMove = Captured (Int,Int) | None deriving(Eq)
 
@@ -27,6 +27,8 @@ defaultDraughtsGame = DraughtsGame None $ GameState
          [(x,y,TileBlack) | x <- [1..8], y <- [1..8], (x `mod` 2 /= y `mod` 2)]
        pieces   = [(x,y,Black,Man) | x <- [1..8], y<-[6..8], (x `mod` 2 == 0 && y==7) || (x `mod` 2 == 1 && y/=7) ] ++
          [(x,y,White,Man) | x <- [1..8], y<-[1..3], (x `mod` 2 == 1 && y==2) || (x `mod` 2 == 0 && y/=2) ]
+
+gameState (DraughtsGame _ game) = game
 
 -- | TooglePlayer, reset LastMove
 togglePlayer (DraughtsGame _ (GameState Black boardPos boardPieces')) = (DraughtsGame None (GameState White boardPos boardPieces'))
@@ -122,11 +124,10 @@ instance PlayableGame DraughtsGame Int Tile Player Piece where
 
   -- | Move piece with persistence, setting LastMove and current player
   applyChange dg@(DraughtsGame last game) (MovePiece posO posD)
-    | Just (player, piece) <- getPieceAt game posO
-    -- x<0 -> there was captuing xD
+    | Just (player, piece) <- getPieceAt game posO, Nothing <- getPieceAt game posD
     = if((canCapture (fst posO, snd posO, player, piece) game) && (canCapture (fst posD, snd posD,player,piece) game))
-        then applyChanges (DraughtsGame (Captured posD) game) [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
-        else applyChanges (togglePlayer dg) [RemovePiece posO, RemovePiece posD, AddPiece posD player piece]
+        then applyChanges (DraughtsGame (Captured posD) game) [RemovePiece posO, AddPiece posD player piece]
+        else applyChanges (togglePlayer dg) [RemovePiece posO, AddPiece posD player piece]
     | otherwise = dg
 
   -- | Add piece of given player and piece type to position
