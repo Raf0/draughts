@@ -1,0 +1,37 @@
+RBT - https://github.com/bwalkowi/RBT
+
+Projekt implementuje Drzewa Czerwono Czarne.
+W aplikacji znajdują się 2 moduły:
+RBT - przedstawiajacy Drzewa Czerwono Czarne
+Map - implementujący mapę na ww. drzewie
+
+Pierwszym rozczarowaniem jest działanie modułu wykonywalnego rbt-exe, który wypisuje "Hejka ;p" i nie robi nic poza tym.
+
+Jeśli chodzi o sam moduł RBT, to ma on dobrze opisany nagłówek, lecz komentarze dotyczące poszczególnych funkcji opisują
+jedynie ich złożoność (co jest na plus), lecz nie opisują ich działania w ogóle.
+
+Importy
+import qualified Data.Foldable as F
+import qualified Data.Traversable as T
+zauważalnie zmniejszają czytelność kodu.
+
+Data Color oraz RBTree są zrobione w klasyczny i zrozumiały sposób.
+
+RBTree implementuje Funkctor oraz Foldable w czytelny sposób.
+
+Funkcje null, empty, singleton są bardzo proste i mimo braku opisu zrozumiałe.
+
+Funckje root, min max korzystają z Pattern Matchingu co sprawie, że są czytelne i wygodne w edycji.
+
+Funkcja search oprócz Pattern Matchingu wykorzystuje także mechanizm Guards, co jeszcze lepiej rozdziela poszczególne przypadki.
+
+Funkcja member korzysta z case, ponieważ Pattern Matching nie może być użyty, gdyż sprawdza rezultat funkcji.
+
+Funckje isRed, isBlack, balance, pushRedToRight oraz pushRedToLeft dzięki Pattern Matchingowi są równie czytelne.
+
+Funkcje remove i insert przez swoją długość i rozbudowanie są nieczytelne i trudne do zrozumienia.
+Dotatkowo brak opisu w komentarzu nie ułatwia tego zadania. Funkcje powinny zostać rozbite na mniejsze.
+
+Moduł Map jest prosty w zrozumieniu dzięki krótkim i czytelnym funkcjom.
+
+Do programu zostały napisane zarówno testy jednosktowe jak i parametryczne. Wszystkie przechodzą poprawnie.
